@@ -1,0 +1,51 @@
+{
+    "bookmarks": [
+      {
+        "category": "Documentation",
+        "links": [
+          {
+            "name": "Juju Operator Lifecycle Manager",
+            "url": "https://juju.is/docs/olm"
+          },
+          {
+            "name": "Canonical Observability Stack",
+            "url": "https://charmhub.io/topics/canonical-observability-stack"
+          },
+          {
+            "name": "COS Lite",
+            "url": "https://charmhub.io/cos-lite/"
+          }
+        ]
+      },
+      {
+        "category": "Join the conversation",
+        "links": [
+          {
+            "name": "Discourse",
+            "url": "https://discourse.charmhub.io/"
+          },
+          {
+            "name": "Mattermost",
+            "url": "https://chat.charmhub.io/"
+          },
+          {
+            "name": "COS Lite",
+            "url": "https://charmhub.io/cos-lite/"
+          }
+        ]
+      },
+      {
+        "category": "Contribute",
+        "links": [
+          {
+            "name": "GitHub",
+            "url": "https://github.com/canonical/cos-lite-bundle/"
+          },
+          {
+            "name": "CharmHub",
+            "url": "https://charmhub.io/"
+          }
+        ]
+      }
+    ]
+  }

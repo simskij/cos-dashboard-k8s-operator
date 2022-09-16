@@ -12,8 +12,13 @@ develop a new k8s charm using the Operator Framework:
     https://discourse.charmhub.io/t/4208
 """
 
+import json
 import logging
 
+from charms.cos_dashboard_k8s.v0.dashboard_info import (
+    DashboardInfoConsumer,
+    EntriesChangedEvent,
+)
 from ops.charm import CharmBase
 from ops.framework import StoredState
 from ops.main import main
@@ -22,19 +27,20 @@ from ops.model import ActiveStatus
 logger = logging.getLogger(__name__)
 
 
-class OperatorTemplateCharm(CharmBase):
+class CosDashboardCharm(CharmBase):
     """Charm the service."""
 
     _stored = StoredState()
 
     def __init__(self, *args):
         super().__init__(*args)
-        self.framework.observe(self.on.httpbin_pebble_ready, self._on_httpbin_pebble_ready)
-        self.framework.observe(self.on.config_changed, self._on_config_changed)
-        self.framework.observe(self.on.fortune_action, self._on_fortune_action)
+        self.name = "cos-dashboard"
+        self._info = DashboardInfoConsumer(charm=self)
+        self.framework.observe(self.on.dashboard_pebble_ready, self._on_dashboard_pebble_ready)
+        self.framework.observe(self._info.on.entries_changed, self._on_entries_changed)
         self._stored.set_default(things=[])
 
-    def _on_httpbin_pebble_ready(self, event):
+    def _on_dashboard_pebble_ready(self, event):
         """Define and start a workload using the Pebble API.
 
         TEMPLATE-TODO: change this example to suit your needs.
@@ -48,57 +54,68 @@ class OperatorTemplateCharm(CharmBase):
         container = event.workload
         # Define an initial Pebble layer configuration
         pebble_layer = {
-            "summary": "httpbin layer",
-            "description": "pebble config layer for httpbin",
+            "summary": "sui layer",
+            "description": "pebble config layer for sui",
             "services": {
-                "httpbin": {
+                "sui": {
                     "override": "replace",
-                    "summary": "httpbin",
-                    "command": "gunicorn -b 0.0.0.0:80 httpbin:app -k gevent",
+                    "summary": "sui",
+                    "command": "/init",
                     "startup": "enabled",
-                    "environment": {"thing": self.model.config["thing"]},
                 }
             },
         }
-        # Add initial Pebble config layer using the Pebble API
-        container.add_layer("httpbin", pebble_layer, combine=True)
-        # Autostart any services that were defined with startup: enabled
+        container.add_layer("sui", pebble_layer, combine=True)
         container.autostart()
-        # Learn more about statuses in the SDK docs:
-        # https://juju.is/docs/sdk/constructs#heading--statuses
+        container.push("/config/www/links.json", json.dumps(self.links), make_dirs=True)
+        self._refresh_apps_list(self._info.entries)
         self.unit.status = ActiveStatus()
 
-    def _on_config_changed(self, _):
-        """Just an example to show how to deal with changed configuration.
+    def _on_entries_changed(self, event: EntriesChangedEvent):
+        self._refresh_apps_list(event.apps)
 
-        TEMPLATE-TODO: change this example to suit your needs.
-        If you don't need to handle config, you can remove this method,
-        the hook created in __init__.py for it, the corresponding test,
-        and the config.py file.
+    def _refresh_apps_list(self, apps):
+        logger.info("Configuring %s application entries", len(apps))
+        container = self.unit.get_container("dashboard")
+        container.push("/config/www/apps.json", json.dumps({"apps": apps}), make_dirs=True)
 
-        Learn more about config at https://juju.is/docs/sdk/config
-        """
-        current = self.config["thing"]
-        if current not in self._stored.things:
-            logger.debug("found a new thing: %r", current)
-            self._stored.things.append(current)
-
-    def _on_fortune_action(self, event):
-        """Just an example to show how to receive actions.
-
-        TEMPLATE-TODO: change this example to suit your needs.
-        If you don't need to handle actions, you can remove this method,
-        the hook created in __init__.py for it, the corresponding test,
-        and the actions.py file.
-
-        Learn more about actions at https://juju.is/docs/sdk/actions
-        """
-        fail = event.params["fail"]
-        if fail:
-            event.fail(fail)
-        else:
-            event.set_results({"fortune": "A bug in the code is worth two in the documentation."})
+    @property
+    def links(self):
+        """Get the links to show in the dashboard."""
+        return {
+            "bookmarks": [
+                {
+                    "category": "Documentation",
+                    "links": [
+                        {
+                            "name": "Juju Operator Lifecycle Manager",
+                            "url": "https://juju.is/docs/olm",
+                        },
+                        {
+                            "name": "Canonical Observability Stack",
+                            "url": "https://charmhub.io/topics/canonical-observability-stack",
+                        },
+                        {"name": "COS Lite", "url": "https://charmhub.io/cos-lite/"},
+                    ],
+                },
+                {
+                    "category": "Join the conversation",
+                    "links": [
+                        {"name": "Discourse", "url": "https://discourse.charmhub.io/"},
+                        {"name": "Mattermost", "url": "https://chat.charmhub.io/"},
+                        {"name": "COS Lite", "url": "https://charmhub.io/cos-lite/"},
+                    ],
+                },
+                {
+                    "category": "Contribute",
+                    "links": [
+                        {"name": "GitHub", "url": "https://github.com/canonical/cos-lite-bundle/"},
+                        {"name": "CharmHub", "url": "https://charmhub.io/"},
+                    ],
+                },
+            ]
+        }
 
 
 if __name__ == "__main__":
-    main(OperatorTemplateCharm)
+    main(CosDashboardCharm)
