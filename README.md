@@ -1,3 +1,7 @@
+> ## ⚠️ This repository has moved
+>
+> The cos-dashboard project has been archived and deprecated in favour of https://github.com/canonical/catalogue-k8s-operator/.
+
 # operator-template
 
 ## Description
